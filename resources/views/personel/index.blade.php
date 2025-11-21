@@ -47,7 +47,7 @@
                             <form action="{{ route('personel.destroy', $personel->id) }}" method="POST" class="d-inline">
 
                                 @csrf
-                                @method('DELETE') <button type="button" class="btn btn-sm btn-danger"
+                                @method('DELETE') <button type="button" class="btn btn-sm btn-outline-danger"
                                                           onclick="return confirm('Reis, bu personeli silmek istediğine emin misin?') ? this.parentElement.submit() : null;">
                                     Sil
                                 </button>
