@@ -49,12 +49,13 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Departman</label>
-                                <select name="departman" class="form-select">
+                                <select name="departman_id" class="form-select" required>
                                     <option value="">Seçiniz...</option>
-                                    <option value="Yazılım" {{ $personel->departman == 'Yazılım' ? 'selected' : '' }}>Yazılım</option>
-                                    <option value="Muhasebe" {{ $personel->departman == 'Muhasebe' ? 'selected' : '' }}>Muhasebe</option>
-                                    <option value="İnsan Kaynakları" {{ $personel->departman == 'İnsan Kaynakları' ? 'selected' : '' }}>İnsan Kaynakları</option>
-                                    <option value="Satış" {{ $personel->departman == 'Satış' ? 'selected' : '' }}>Satış</option>
+                                    @foreach($departmanlar as $departman)
+                                        <option value="{{ $departman->id }}" {{ old('departman_id', $personel->departman_id) == $departman->id ? 'selected' : '' }}>
+                                            {{ $departman->ad }}
+                                        </option>
+                                    @endforeach
                                 </select>
                             </div>
 
