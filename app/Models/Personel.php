@@ -8,22 +8,21 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Personel extends Model
 {
-    use HasFactory;
-    use SoftDeletes;
-
-    // Tablo ismini elle belirtmek (Opsiyonel ama garanti olur)
+    use HasFactory, SoftDeletes;
     protected $table = 'personels';
-
-    // Hangi sütunlara veri eklenmesine izin veriyorsun?
-    // (Bunu yazmazsan formdan veri kaydederken hata alırsın!)
+    
+    // departman_id'yi fillable'a eklemeyi UNUTMA!
     protected $fillable = [
-        'ad_soyad',
-        'email',
-        'departman',
-        'ise_baslama_tarihi',
-        'maas'
+        'departman_id', // <-- Yeni eklediğimiz
+        'ad_soyad', 
+        'email', 
+        'maas', 
+        'ise_baslama_tarihi'
     ];
 
-    // Alternatif Yöntem (ATC'de bunu da görebilirsin):
-    // protected $guarded = []; // "Hiçbir şeyi koruma, her şeyi kaydet" demektir.
+    // İLİŞKİ: Bir personel, TEK BİR departmana aittir (Belongs To)
+    public function departman()
+    {
+        return $this->belongsTo(Departman::class, 'departman_id', 'id');
+    }
 }

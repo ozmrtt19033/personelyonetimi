@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Personel;
+use App\Models\Departman;
 
 class PersonelController extends Controller
 {
@@ -16,7 +17,8 @@ class PersonelController extends Controller
         // ATC Yazılım notu: Eskiden Personel::all() çok kullanılırdı.
         // Ama biz modern ve performanslı olsun diye 'latest' (en son eklenen en üstte) kullanalım.
 
-        $personeller = Personel::latest()->get();
+        // Departman ilişkisini de yükle (N+1 query problemini önlemek için)
+        $personeller = Personel::with('departman')->latest()->get();
 
         // Not: Eğer en başta 'use App\Models\Personel;' eklediysen başına \App\Models\ yazmana gerek yok.
 
@@ -29,8 +31,10 @@ class PersonelController extends Controller
      */
     public function create()
     {
+        // Departmanları veritabanından çek ve forma gönder
+        $departmanlar = Departman::all();
         // resources/views/personel/create.blade.php dosyasını kullanıcıya gösterir
-        return view('personel.create');
+        return view('personel.create', compact('departmanlar'));
     }
 
     /**
@@ -44,20 +48,36 @@ class PersonelController extends Controller
         $request->validate([
             'ad_soyad' => 'required|max:255', // Boş olamaz, max 255 karakter
             'email' => 'required|email|unique:personels', // Email formatı olmalı ve DB'de aynısı olmamalı
-            'departman' => 'required', // Seçilmesi zorunlu
+            'departman_id' => 'required|exists:departmans,id', // Seçilmesi zorunlu ve departmans tablosunda olmalı
             'maas' => 'nullable|numeric', // Boş olabilir ama doluysa sayı olmalı
             'ise_baslama_tarihi' => 'nullable|date',
         ], [
             // Özel Hata Mesajları (Opsiyonel - Mülakatta +Puan getirir)
             'ad_soyad.required' => 'Reis, isim yazmayı unuttun!',
             'email.unique' => 'Bu mail adresiyle zaten kayıt var.',
+            'departman_id.required' => 'Departman seçimi zorunludur!',
+            'departman_id.exists' => 'Seçilen departman geçersiz!',
         ]);
 
         // 2. KAYIT İŞLEMİ (Mass Assignment)
         // Model dosyasında $fillable alanlarını tanımladığımız için
         // tek satırda tüm veriyi basabiliriz.
         // ATC Notu: Laravel 6'da Model namespace'i App\Personel olabilir, dikkat et.
-        Personel::create($request->all());
+        // Sadece gerekli alanları al (departman_id'nin geldiğinden emin ol)
+        $data = $request->only([
+            'ad_soyad',
+            'email',
+            'departman_id',
+            'maas',
+            'ise_baslama_tarihi'
+        ]);
+        
+        // departman_id'nin boş olmadığından emin ol
+        if (empty($data['departman_id'])) {
+            return back()->withErrors(['departman_id' => 'Departman seçimi zorunludur!'])->withInput();
+        }
+        
+        Personel::create($data);
 
         /* Eğer $fillable kullanmasaydık veya Laravel 6'da eski usül isteselerdi
            şöyle yazardık (Uzun Yol):
@@ -88,7 +108,9 @@ class PersonelController extends Controller
      */
     public function edit(Personel $personel)
     {
-      return view('personel.edit', compact('personel'));
+        // Departmanları veritabanından çek ve forma gönder
+        $departmanlar = Departman::all();
+        return view('personel.edit', compact('personel', 'departmanlar'));
     }
 
     /**
@@ -104,13 +126,23 @@ class PersonelController extends Controller
             'ad_soyad' => 'required|max:255',
             // E-posta kontrolünde ignore kısmında $personel->id kullanıyoruz
             'email'    => 'required|email|unique:personels,email,'.$personel->id,
-            'departman'=> 'required',
+            'departman_id' => 'required|exists:departmans,id',
             'maas'     => 'nullable|numeric',
             'ise_baslama_tarihi' => 'nullable|date',
+        ], [
+            'departman_id.required' => 'Departman seçimi zorunludur!',
+            'departman_id.exists' => 'Seçilen departman geçersiz!',
         ]);
 
         // 2. Güncelleme (Artık $personel bir nesne olduğu için update çalışır)
-        $personel->update($request->all());
+        // Sadece gerekli alanları al (departman_id'nin geldiğinden emin ol)
+        $personel->update($request->only([
+            'ad_soyad',
+            'email',
+            'departman_id',
+            'maas',
+            'ise_baslama_tarihi'
+        ]));
 
         // 3. Yönlendirme
         return redirect()->route('personel.index')

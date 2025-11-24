@@ -25,3 +25,4 @@ Route::get('/personel/{personel}/edit', [PersonelController::class, 'edit'])->na
 
 // silme işlemi route yapısı
 Route::delete('/personel/{personel}', [PersonelController::class, 'destroy'])->name('personel.destroy');
+Route::view('/api-test', 'api_test');

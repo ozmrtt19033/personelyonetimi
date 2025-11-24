@@ -44,14 +44,23 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="departman" class="form-label">Departman</label>
-                                <select name="departman" class="form-select">
+                                <label for="departman_id" class="form-label">Departman <span class="text-danger">*</span></label>
+                                <select name="departman_id" class="form-select @error('departman_id') is-invalid @enderror" required>
                                     <option value="">Seçiniz...</option>
-                                    <option value="Yazılım" {{ old('departman') == 'Yazılım' ? 'selected' : '' }}>Yazılım</option>
-                                    <option value="Muhasebe" {{ old('departman') == 'Muhasebe' ? 'selected' : '' }}>Muhasebe</option>
-                                    <option value="İnsan Kaynakları" {{ old('departman') == 'İnsan Kaynakları' ? 'selected' : '' }}>İnsan Kaynakları</option>
-                                    <option value="Satış" {{ old('departman') == 'Satış' ? 'selected' : '' }}>Satış</option>
+                                    @forelse($departmanlar as $departman)
+                                        <option value="{{ $departman->id }}" {{ old('departman_id') == $departman->id ? 'selected' : '' }}>
+                                            {{ $departman->ad }}
+                                        </option>
+                                    @empty
+                                        <option value="" disabled>Henüz departman eklenmemiş!</option>
+                                    @endforelse
                                 </select>
+                                @error('departman_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                @if($departmanlar->isEmpty())
+                                    <small class="text-danger">Lütfen önce departman ekleyin!</small>
+                                @endif
                             </div>
 
                             <div class="col-md-6 mb-3">

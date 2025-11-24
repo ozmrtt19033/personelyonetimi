@@ -39,7 +39,7 @@
                         <td>{{ $loop->iteration }}</td>
                         <td>{{ $personel->ad_soyad }}</td>
                         <td>
-                            <span class="badge bg-info text-dark">{{ $personel->departman }}</span>
+                            <span class="badge bg-info text-dark">{{ json_decode($personel->departman)->ad ?? 'Departman Bulunamadı' }}</span>
                         </td>
                         <td>{{ number_format($personel->maas, 2) }} ₺</td>
                         <td>
