@@ -16,4 +16,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/personel', [PersonelController::class, 'store']); // Kayıt etmek yasak
     Route::post('/logout', [AuthController::class, 'logout']); // Çıkış yapmak
 
+    Route::get('/profile', [AuthController::class, 'profile']); // Profilimi gör
+    Route::post('/profile/password', [AuthController::class, 'updatePassword']); // Şifremi değiştir
+
 });
