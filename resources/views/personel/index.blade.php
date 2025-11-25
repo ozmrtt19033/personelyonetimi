@@ -1,102 +1,77 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <title>Personel Listesi</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
+@extends('layouts.app') @section('content')
+    <div class="container">
 
-<div class="container mt-5">
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            ✅ {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">👨‍💼 Personel Listesi</h4>
 
+                <div>
+                    <a href="{{ route('personel.export') }}" class="btn btn-success btn-sm me-2">📊 Excel</a>
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h1>👨‍💼 Personel Listesi</h1>
+                    @if(auth()->check() && auth()->user()->role == 'admin')
+                        <a href="{{ route('personel.create') }}" class="btn btn-light btn-sm text-primary">➕ Yeni Ekle</a>
+                    @endif
+                </div>
+            </div>
 
-            <div>
-                <a href="{{ route('personel.export') }}" class="btn btn-success me-2">
-                    📊 Excel İndir
-                </a>
+            <div class="card-body">
 
-                <a href="{{ route('personel.create') }}" class="btn btn-primary">
-                    ➕ Yeni Personel
-                </a>
+                <table class="table table-hover table-bordered">
+                    <thead class="table-dark">
+                    <tr>
+                        <th>Foto</th>
+                        <th>Ad Soyad</th>
+                        <th>Departman</th>
+                        <th>Maaş</th>
+                        <th>İşlemler</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @forelse($personeller as $personel)
+                        <tr>
+                            <td>
+                                @if($personel->gorsel)
+                                    <img src="{{ asset('storage/' . $personel->gorsel) }}" width="50" class="rounded-circle" style="object-fit: cover;">
+                                @else
+                                    <span class="badge bg-secondary">Yok</span>
+                                @endif
+                            </td>
+                            <td>
+                                {{ $personel->ad_soyad }} <br>
+                                @foreach($personel->projects as $proje)
+                                    <span class="badge bg-info text-dark" style="font-size: 0.7em">{{ $proje->ad }}</span>
+                                @endforeach
+                            </td>
+                            <td>{{ $personel->departman?->ad }}</td>
+                            <td>{{ number_format($personel->maas, 2) }} ₺</td>
+                            <td>
+                                <a href="{{ route('personel.show', $personel->id) }}" class="btn btn-sm btn-info text-white">👁️</a>
+
+                                @if(auth()->check() && auth()->user()->role == 'admin')
+                                    <a href="{{ route('personel.edit', $personel->id) }}" class="btn btn-sm btn-warning">✏️</a>
+
+                                    <form action="{{ route('personel.destroy', $personel->id) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="return confirm('Silmek istediğine emin misin?')">🗑️</button>
+                                    </form>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="text-center">Kayıt yok.</td></tr>
+                    @endforelse
+                    </tbody>
+                </table>
+
             </div>
         </div>
-
-    <div class="card shadow">
-        <div class="card-body">
-            <table class="table table-hover table-bordered">
-                <thead class="table-dark">
-                <tr>
-                    <th>#</th>
-                    <th>Foto</th>
-                    <th>Ad Soyad</th>
-                    <th>Departman</th>
-                    <th>Maaş</th>
-                    @if(auth()->check() && auth()->user()->role == 'admin')
-                        <th>İşlemler</th>
-
-                    @endif
-
-                </tr>
-                </thead>
-                <tbody>
-                @forelse($personeller as $personel)
-                    <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>
-                            @if($personel->gorsel)
-                                <img src="{{ asset('storage/' . $personel->gorsel) }}"
-                                     alt="Foto" width="50" height="50" class="rounded-circle" style="object-fit: cover;">
-                            @else
-                                <span class="badge bg-secondary">Resim Yok</span>
-                            @endif
-                        </td>
-                        <td>{{ $personel->ad_soyad }}</td>
-                        <td>
-                            <span class="badge bg-info text-dark">{{ json_decode($personel->departman)->ad ?? 'Departman Bulunamadı' }}</span>
-                        </td>
-                        <td>{{ number_format($personel->maas, 2) }} ₺</td>
-                        @if(auth()->check() && auth()->user()->role == 'admin')
-
-                            <td>
-                                <a href="{{ route('personel.edit', $personel->id) }}" class="btn btn-sm btn-warning">Düzenle</a>
-                                <a href="{{ route('personel.show', $personel->id) }}" class="btn btn-sm btn-info text-white" title="Detay">
-                                    👁️
-                                </a>
-                                <form action="{{ route('personel.destroy', $personel->id) }}" method="POST" class="d-inline">
-
-                                    @csrf
-                                    @method('DELETE') <button type="button" class="btn btn-sm btn-outline-danger"
-                                                              onclick="return confirm('Reis, bu personeli silmek istediğine emin misin?') ? this.parentElement.submit() : null;">
-                                        Sil
-                                    </button>
-                                </form>
-                            </td>
-                        @endif
-
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="text-center text-muted">
-                            Henüz kayıtlı personel yok reis.
-                        </td>
-                    </tr>
-                @endforelse
-                </tbody>
-            </table>
-        </div>
     </div>
-</div>
-
-
-</body>
-</html>
+@endsection
