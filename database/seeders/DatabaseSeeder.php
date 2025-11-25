@@ -23,9 +23,25 @@ class DatabaseSeeder extends Seeder
 //        ]);
 
         $this->call([
-            DepartmanSeeder::class, // 1. Önce bu
-            PersonelSeeder::class,  // 2. Sonra bu (YENİ EKLEDİK)
-            ProjectSeeder::class,   // 3. En son bu (İlişki kurar)
+            DepartmanSeeder::class,
+            PersonelSeeder::class,
+            ProjectSeeder::class,
+        ]);
+
+        // 1. ADMIN KULLANICISI (Patron)
+        \App\Models\User::create([
+            'name' => 'Armağan Bey',
+            'email' => 'admin@atc.com',
+            'password' => bcrypt('password'),
+            'role' => 'admin' // <-- Rütbesi Admin
+        ]);
+
+        // 2. STANDART KULLANICI (Personel)
+        \App\Models\User::create([
+            'name' => 'Stajyer Ahmet',
+            'email' => 'stajyer@atc.com',
+            'password' => bcrypt('password'),
+            'role' => 'personel' // <-- Rütbesi Personel
         ]);
     }
 }
