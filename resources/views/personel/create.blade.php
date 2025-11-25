@@ -12,15 +12,23 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
 
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    <ul class="mb-0">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    🚫 <strong>Hata:</strong> {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
+
+
+                @if ($errors->any())
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
 
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">

@@ -7,26 +7,30 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// --- TEST GİRİŞ ROTALARI ---
 Route::get('/giris-admin', function () {
-    auth()->loginUsingId(1); // ID 1: Armağan Bey (Admin)
+    auth()->loginUsingId(1);
     return redirect('/personel');
 });
 
-// Hızlıca Stajyer olarak giriş yap
 Route::get('/giris-stajyer', function () {
-    auth()->loginUsingId(2); // ID 2: Stajyer Ahmet (Personel)
+    auth()->loginUsingId(2);
     return redirect('/personel');
 });
 
-
+// 1. HERKESİN GÖREBİLECEĞİ GENEL ROTA (Listeleme)
 Route::get('/personel', [PersonelController::class, 'index'])->name('personel.index');
-Route::get('/personel/{personel}', [PersonelController::class, 'show'])->name('personel.show');
+
+// -----------------------------------------------------------
+// 🚨 KRİTİK DEĞİŞİKLİK BURADA REİS 🚨
+// Create, Edit gibi özel rotaları, {personel} rotasından ÖNCE yazmalıyız.
+// O yüzden Middleware grubunu yukarı taşıdık.
+// -----------------------------------------------------------
 
 // 2. SADECE ADMIN'İN GİREBİLECEĞİ ROTALAR (Create, Edit, Delete)
-// middleware(['auth', 'admin']) -> Hem giriş yapmış olsun HEM DE admin olsun
 Route::middleware(['auth', 'admin'])->group(function () {
 
-    // Ekleme
+    // Ekleme (Create rotası artık Show'dan önce olduğu için çalışacak!)
     Route::get('/personel/create', [PersonelController::class, 'create'])->name('personel.create');
     Route::post('/personel', [PersonelController::class, 'store'])->name('personel.store');
 
@@ -38,26 +42,6 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::delete('/personel/{personel}', [PersonelController::class, 'destroy'])->name('personel.destroy');
 });
 
-
-////Route::resource('personel', PersonelController::class);
-//
-//// 1. Listeleme Sayfası (GET) -> EKSİK OLAN BUYDU!
-//Route::get('/personel', [PersonelController::class, 'index'])->name('personel.index');
-//
-//// 2. Form Gösterme Sayfası (GET)
-//Route::get('/personel/create', [PersonelController::class, 'create'])->name('personel.create');
-//
-//// 3. Kaydetme İşlemi (POST)
-//Route::post('/personel', [PersonelController::class, 'store'])->name('personel.store');
-//
-//// güncelleme route
-//Route::put('/personel/{personel}', [PersonelController::class, 'update'])->name('personel.update');
-//Route::get('/personel/{personel}/edit', [PersonelController::class, 'edit'])->name('personel.edit');
-//
-//// silme işlemi route yapısı
-//Route::delete('/personel/{personel}', [PersonelController::class, 'destroy'])->name('personel.destroy');
-//Route::view('/api-test', 'api_test');
-//
-//Route::get('/personel/{personel}', [\App\Http\Controllers\PersonelController::class, 'show'])->name('personel.show');
-
-
+// 3. DETAY GÖSTERME (SHOW) - EN SONA KOYDUK!
+// Laravel yukarıdakilerden hiçbirini bulamazsa (create, edit değilse) buna bakacak.
+Route::get('/personel/{personel}', [PersonelController::class, 'show'])->name('personel.show');
