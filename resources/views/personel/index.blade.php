@@ -31,7 +31,11 @@
                     <th>Ad Soyad</th>
                     <th>Departman</th>
                     <th>Maaş</th>
-                    <th>İşlemler</th>
+                    @if(auth()->check() && auth()->user()->role == 'admin')
+                        <th>İşlemler</th>
+
+                    @endif
+
                 </tr>
                 </thead>
                 <tbody>
@@ -51,20 +55,24 @@
                             <span class="badge bg-info text-dark">{{ json_decode($personel->departman)->ad ?? 'Departman Bulunamadı' }}</span>
                         </td>
                         <td>{{ number_format($personel->maas, 2) }} ₺</td>
-                        <td>
-                            <a href="{{ route('personel.edit', $personel->id) }}" class="btn btn-sm btn-warning">Düzenle</a>
-                            <a href="{{ route('personel.show', $personel->id) }}" class="btn btn-sm btn-info text-white" title="Detay">
-                                👁️
-                            </a>
-                            <form action="{{ route('personel.destroy', $personel->id) }}" method="POST" class="d-inline">
+                        @if(auth()->check() && auth()->user()->role == 'admin')
 
-                                @csrf
-                                @method('DELETE') <button type="button" class="btn btn-sm btn-outline-danger"
-                                                          onclick="return confirm('Reis, bu personeli silmek istediğine emin misin?') ? this.parentElement.submit() : null;">
-                                    Sil
-                                </button>
-                            </form>
-                        </td>
+                            <td>
+                                <a href="{{ route('personel.edit', $personel->id) }}" class="btn btn-sm btn-warning">Düzenle</a>
+                                <a href="{{ route('personel.show', $personel->id) }}" class="btn btn-sm btn-info text-white" title="Detay">
+                                    👁️
+                                </a>
+                                <form action="{{ route('personel.destroy', $personel->id) }}" method="POST" class="d-inline">
+
+                                    @csrf
+                                    @method('DELETE') <button type="button" class="btn btn-sm btn-outline-danger"
+                                                              onclick="return confirm('Reis, bu personeli silmek istediğine emin misin?') ? this.parentElement.submit() : null;">
+                                        Sil
+                                    </button>
+                                </form>
+                            </td>
+                        @endif
+
                     </tr>
                 @empty
                     <tr>
