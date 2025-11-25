@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+
 use Illuminate\Http\Request;
 use App\Models\Personel;
 use App\Models\Departman;
+use App\Models\Project;
+use Illuminate\Support\Facades\Storage;
 
 class PersonelController extends Controller
 {
@@ -64,19 +67,35 @@ class PersonelController extends Controller
         // tek satırda tüm veriyi basabiliriz.
         // ATC Notu: Laravel 6'da Model namespace'i App\Personel olabilir, dikkat et.
         // Sadece gerekli alanları al (departman_id'nin geldiğinden emin ol)
-        $data = $request->only([
-            'ad_soyad',
-            'email',
-            'departman_id',
-            'maas',
-            'ise_baslama_tarihi'
-        ]);
-        
+//        $data = $request->only([
+//            'ad_soyad',
+//            'email',
+//            'departman_id',
+//            'maas',
+//            'ise_baslama_tarihi'
+//        ]);
+        $data = $request->all();
+
+        // 2. DOSYA YÜKLEME İŞLEMİ
+        if ($request->hasFile('gorsel')) {
+            $file = $request->file('gorsel');
+
+            // Benzersiz isim ver (Zaman damgası + uzantı) -> Örn: 1678944.jpg
+            $filename = time() . '.' . $file->getClientOriginalExtension();
+
+            // Dosyayı 'public/uploads' klasörüne kaydet
+            $file->storeAs('uploads', $filename, 'public');
+
+            // Veritabanına kaydedilecek yolu ayarla ("uploads/1678944.jpg")
+            $data['gorsel'] = 'uploads/' . $filename;
+        }
+
+
         // departman_id'nin boş olmadığından emin ol
         if (empty($data['departman_id'])) {
             return back()->withErrors(['departman_id' => 'Departman seçimi zorunludur!'])->withInput();
         }
-        
+
         Personel::create($data);
 
         /* Eğer $fillable kullanmasaydık veya Laravel 6'da eski usül isteselerdi
@@ -98,9 +117,11 @@ class PersonelController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+
+    //PersonelProjeleri sayfasının görüntülenebilmesi için gerekli olan kodlama
+    public function show(Personel $personel)
     {
-        //
+        return view('personel.show', compact('personel'));
     }
 
     /**
@@ -110,7 +131,11 @@ class PersonelController extends Controller
     {
         // Departmanları veritabanından çek ve forma gönder
         $departmanlar = Departman::all();
-        return view('personel.edit', compact('personel', 'departmanlar'));
+        $projects = Project::all();
+        // Örn: [1, 3] -> Bu sayede Blade'de "bu seçili mi?" diye bakabileceğiz.
+        $secili_projeler = $personel->projects->pluck('id')->toArray();
+
+        return view('personel.edit', compact('personel', 'departmanlar', 'projects', 'secili_projeler'));
     }
 
     /**
@@ -121,21 +146,20 @@ class PersonelController extends Controller
 
     public function update(\Illuminate\Http\Request $request, \App\Models\Personel $personel)
     {
-        // 1. Validasyon
-        $request->validate([
+        // 1. VALIDASYON (Sadece temel bilgiler)
+       $data = $request->validate([
             'ad_soyad' => 'required|max:255',
-            // E-posta kontrolünde ignore kısmında $personel->id kullanıyoruz
-            'email'    => 'required|email|unique:personels,email,'.$personel->id,
+            'email' => 'required|email|unique:personels,email,' . $personel->id,
             'departman_id' => 'required|exists:departmans,id',
-            'maas'     => 'nullable|numeric',
+            'maas' => 'nullable|numeric',
             'ise_baslama_tarihi' => 'nullable|date',
+            'gorsel' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ], [
             'departman_id.required' => 'Departman seçimi zorunludur!',
-            'departman_id.exists' => 'Seçilen departman geçersiz!',
         ]);
 
-        // 2. Güncelleme (Artık $personel bir nesne olduğu için update çalışır)
-        // Sadece gerekli alanları al (departman_id'nin geldiğinden emin ol)
+        // 2. TEMEL BİLGİLERİ GÜNCELLE
+        // Formdan gelen yazılı verileri (ad, soyad, email vb.) güncelliyoruz.
         $personel->update($request->only([
             'ad_soyad',
             'email',
@@ -143,18 +167,48 @@ class PersonelController extends Controller
             'maas',
             'ise_baslama_tarihi'
         ]));
+        if ($request->hasFile('gorsel')) {
 
-        // 3. Yönlendirme
+            // A) Eski resim varsa ve dosya yerinde duruyorsa SİL (Temizlik)
+            if ($personel->gorsel && \Illuminate\Support\Facades\Storage::exists('public/' . $personel->gorsel)) {
+                \Illuminate\Support\Facades\Storage::delete('public/' . $personel->gorsel);
+            }
+
+            // B) Yeni resmi yükle
+            $file = $request->file('gorsel');
+            $filename = time() . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('uploads', $filename, 'public');
+
+            // C) Veritabanına yazılacak yeni yolu ayarla
+            $data['gorsel'] = 'uploads/' . $filename;
+        }
+
+        $personel->update($data);
+
+
+        // 3. PROJE ATAMA (SYNC - Many to Many)
+        // Burası işin kalbi. Formdaki çoklu seçim kutusundan gelen 'projects' dizisi.
+        if (isset($request->projects)) {
+            // sync(): Listede olanları ekler, olmayanları siler. Tam eşitleme yapar.
+            $personel->projects()->sync($request->projects);
+        } else {
+            // Eğer kutudaki tüm seçimleri kaldırdıysa (hiçbir şey seçmediyse),
+            // o personelin tüm proje bağlantılarını kopar.
+            $personel->projects()->detach();
+        }
+
+        // 4. YÖNLENDİRME
         return redirect()->route('personel.index')
-            ->with('success', 'Personel güncellendi reis!');
+            ->with('success', 'Personel ve proje görevleri güncellendi reis!');
     }
+
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(Personel $personel)
     {
-       $personel->delete();
-       /*$personel->forceDelete();*/ //tamamen silmek için gerekli olan kodlama...
-       return redirect()->route('personel.index')->with('success','Personel kaydı başarıyla silindi.');
+        $personel->delete();
+        /*$personel->forceDelete();*/ //tamamen silmek için gerekli olan kodlama...
+        return redirect()->route('personel.index')->with('success', 'Personel kaydı başarıyla silindi.');
     }
 }

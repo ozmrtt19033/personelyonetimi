@@ -28,7 +28,7 @@
                 </div>
                 <div class="card-body">
 
-                    <form action="{{ route('personel.store') }}" method="POST">
+                    <form action="{{ route('personel.store') }}" method="POST" enctype="multipart/form-data">
 
                         @csrf
 
@@ -62,6 +62,12 @@
                                     <small class="text-danger">Lütfen önce departman ekleyin!</small>
                                 @endif
                             </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Personel Fotoğrafı</label>
+                                <input type="file" name="gorsel" class="form-control" accept="image/*">
+                            </div>
+
 
                             <div class="col-md-6 mb-3">
                                 <label for="maas" class="form-label">Maaş (₺)</label>
