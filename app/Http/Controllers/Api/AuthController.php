@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 
 class AuthController extends Controller
@@ -53,5 +54,59 @@ class AuthController extends Controller
             ]
         );
     }
+
+    //profil bilgilerini getir:::
+    public function profile(Request $request)
+    {
+        // Token ile gelen kullanıcıyı yakala
+        $user = $request->user();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Profil bilgileri getirildi.',
+            'data' => [
+                'id' => $user->id,
+                'ad_soyad' => $user->name,
+                'email' => $user->email,
+                'rutbe' => $user->role,
+                'kayit_tarihi' => $user->created_at->format('d.m.Y'),
+            ]
+        ]);
+    }
+
+    //şifre değiştirme fonksiyonu
+    public function updatePassword(Request $request)
+    {
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'eski_sifre' => 'required',
+            'yeni_sifre' => 'required|min:6|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Eksik veya hatalı bilgi.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = $request->user();
+
+        if (!Hash::check($request->eski_sifre, $user->password)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Eski şifreniz hatalı reis, değiştiremezsin!'
+            ], 400);
+        }
+
+        $user->password = Hash::make($request->yeni_sifre);
+        $user->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Şifreniz başarıyla güncellendi.'
+        ]);
+    }
+
 
 }
