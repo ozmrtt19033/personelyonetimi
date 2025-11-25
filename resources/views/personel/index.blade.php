@@ -17,10 +17,19 @@
     @endif
 
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1>👨‍💼 Personel Listesi</h1>
-        <a href="{{route('personel.create')}}" class="btn btn-primary">Yeni Personel Ekle</a>
-    </div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1>👨‍💼 Personel Listesi</h1>
+
+            <div>
+                <a href="{{ route('personel.export') }}" class="btn btn-success me-2">
+                    📊 Excel İndir
+                </a>
+
+                <a href="{{ route('personel.create') }}" class="btn btn-primary">
+                    ➕ Yeni Personel
+                </a>
+            </div>
+        </div>
 
     <div class="card shadow">
         <div class="card-body">

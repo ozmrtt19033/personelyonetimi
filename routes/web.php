@@ -32,6 +32,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     // Ekleme (Create rotası artık Show'dan önce olduğu için çalışacak!)
     Route::get('/personel/create', [PersonelController::class, 'create'])->name('personel.create');
+    Route::get('/personel/export', [PersonelController::class, 'export'])->name('personel.export'); // export createden hemen sonra gelmelidir.
     Route::post('/personel', [PersonelController::class, 'store'])->name('personel.store');
 
     // Düzenleme

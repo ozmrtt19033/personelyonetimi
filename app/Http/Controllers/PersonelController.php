@@ -9,6 +9,12 @@ use App\Models\Departman;
 use App\Models\Project;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use App\Exports\PersonelExport;
+
+//excel çıktısı için
+use Maatwebsite\Excel\Facades\Excel;
+
+//excel çıktısı için
 
 class PersonelController extends Controller
 {
@@ -52,20 +58,20 @@ class PersonelController extends Controller
     {
         // 1. VALIDASYON (Zırhlı Kapı)
         $request->validate([
-            'ad_soyad'     => 'required|max:255',
-            'email'        => 'required|email|unique:personels',
+            'ad_soyad' => 'required|max:255',
+            'email' => 'required|email|unique:personels',
             'departman_id' => 'required|exists:departmans,id',
-            'maas'         => 'nullable|numeric',
+            'maas' => 'nullable|numeric',
             'ise_baslama_tarihi' => 'nullable|date',
             // EKSİK OLAN GÖRSEL KURALINI GERİ EKLEDİK:
-            'gorsel'       => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'gorsel' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ], [
-            'ad_soyad.required'     => 'Reis, isim yazmayı unuttun!',
-            'email.unique'          => 'Bu mail adresiyle zaten kayıt var.',
+            'ad_soyad.required' => 'Reis, isim yazmayı unuttun!',
+            'email.unique' => 'Bu mail adresiyle zaten kayıt var.',
             'departman_id.required' => 'Departman seçimi zorunludur!',
-            'departman_id.exists'   => 'Seçilen departman geçersiz!',
-            'gorsel.image'          => 'Lütfen geçerli bir resim dosyası seçin.',
-            'gorsel.max'            => 'Resim boyutu 2MB dan büyük olamaz.',
+            'departman_id.exists' => 'Seçilen departman geçersiz!',
+            'gorsel.image' => 'Lütfen geçerli bir resim dosyası seçin.',
+            'gorsel.max' => 'Resim boyutu 2MB dan büyük olamaz.',
         ]);
 
         // 2. RİSKLİ İŞLEMLER (Try-Catch)
@@ -139,7 +145,7 @@ class PersonelController extends Controller
     public function update(\Illuminate\Http\Request $request, \App\Models\Personel $personel)
     {
         // 1. VALIDASYON (Sadece temel bilgiler)
-       $data = $request->validate([
+        $data = $request->validate([
             'ad_soyad' => 'required|max:255',
             'email' => 'required|email|unique:personels,email,' . $personel->id,
             'departman_id' => 'required|exists:departmans,id',
@@ -194,14 +200,12 @@ class PersonelController extends Controller
             // 4. YÖNLENDİRME
             return redirect()->route('personel.index')
                 ->with('success', 'Personel ve proje görevleri güncellendi reis!');
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Güncelleme olurken hata oluştu reis: ' . $e->getMessage());
 
             return redirect()->back()->withInput()->with('error', 'Bir hata oluştu inceleniyor');
 
         }
-
 
 
     }
@@ -215,4 +219,12 @@ class PersonelController extends Controller
         /*$personel->forceDelete();*/ //tamamen silmek için gerekli olan kodlama...
         return redirect()->route('personel.index')->with('success', 'Personel kaydı başarıyla silindi.');
     }
+
+    public function export()
+    {
+        // 'personeller.xlsx' adıyla indir.
+        return Excel::download(new PersonelExport, 'personel_listesi.xlsx');
+    }
+
+
 }
