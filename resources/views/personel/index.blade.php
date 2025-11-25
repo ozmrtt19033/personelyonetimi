@@ -16,6 +16,7 @@
         </div>
     @endif
 
+
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>👨‍💼 Personel Listesi</h1>
         <a href="{{route('personel.create')}}" class="btn btn-primary">Yeni Personel Ekle</a>

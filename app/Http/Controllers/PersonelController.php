@@ -8,6 +8,7 @@ use App\Models\Personel;
 use App\Models\Departman;
 use App\Models\Project;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class PersonelController extends Controller
 {
@@ -43,77 +44,68 @@ class PersonelController extends Controller
     /**
      * Store a newly created resource in storage.
      */
+// Dosyanın en tepesine şunu eklemeyi unutma:
+// use Illuminate\Support\Facades\Log;
+// use App\Models\Personel;
+
     public function store(Request $request)
     {
-        // 1. VALIDASYON (Doğrulama)
-        // Formdan gelen veriler kurallara uyuyor mu?
-        // Uymazsa Laravel otomatik olarak hata mesajlarıyla birlikte formu geri yükler.
+        // 1. VALIDASYON (Zırhlı Kapı)
         $request->validate([
-            'ad_soyad' => 'required|max:255', // Boş olamaz, max 255 karakter
-            'email' => 'required|email|unique:personels', // Email formatı olmalı ve DB'de aynısı olmamalı
-            'departman_id' => 'required|exists:departmans,id', // Seçilmesi zorunlu ve departmans tablosunda olmalı
-            'maas' => 'nullable|numeric', // Boş olabilir ama doluysa sayı olmalı
+            'ad_soyad'     => 'required|max:255',
+            'email'        => 'required|email|unique:personels',
+            'departman_id' => 'required|exists:departmans,id',
+            'maas'         => 'nullable|numeric',
             'ise_baslama_tarihi' => 'nullable|date',
+            // EKSİK OLAN GÖRSEL KURALINI GERİ EKLEDİK:
+            'gorsel'       => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ], [
-            // Özel Hata Mesajları (Opsiyonel - Mülakatta +Puan getirir)
-            'ad_soyad.required' => 'Reis, isim yazmayı unuttun!',
-            'email.unique' => 'Bu mail adresiyle zaten kayıt var.',
+            'ad_soyad.required'     => 'Reis, isim yazmayı unuttun!',
+            'email.unique'          => 'Bu mail adresiyle zaten kayıt var.',
             'departman_id.required' => 'Departman seçimi zorunludur!',
-            'departman_id.exists' => 'Seçilen departman geçersiz!',
+            'departman_id.exists'   => 'Seçilen departman geçersiz!',
+            'gorsel.image'          => 'Lütfen geçerli bir resim dosyası seçin.',
+            'gorsel.max'            => 'Resim boyutu 2MB dan büyük olamaz.',
         ]);
 
-        // 2. KAYIT İŞLEMİ (Mass Assignment)
-        // Model dosyasında $fillable alanlarını tanımladığımız için
-        // tek satırda tüm veriyi basabiliriz.
-        // ATC Notu: Laravel 6'da Model namespace'i App\Personel olabilir, dikkat et.
-        // Sadece gerekli alanları al (departman_id'nin geldiğinden emin ol)
-//        $data = $request->only([
-//            'ad_soyad',
-//            'email',
-//            'departman_id',
-//            'maas',
-//            'ise_baslama_tarihi'
-//        ]);
-        $data = $request->all();
+        // 2. RİSKLİ İŞLEMLER (Try-Catch)
+        try {
+            $data = $request->all();
 
-        // 2. DOSYA YÜKLEME İŞLEMİ
-        if ($request->hasFile('gorsel')) {
-            $file = $request->file('gorsel');
+            // Dosya Yükleme İşlemi
+            if ($request->hasFile('gorsel')) {
+                $file = $request->file('gorsel');
+                $filename = time() . '.' . $file->getClientOriginalExtension();
 
-            // Benzersiz isim ver (Zaman damgası + uzantı) -> Örn: 1678944.jpg
-            $filename = time() . '.' . $file->getClientOriginalExtension();
+                // Public diskine kaydet
+                $file->storeAs('uploads', $filename, 'public');
 
-            // Dosyayı 'public/uploads' klasörüne kaydet
-            $file->storeAs('uploads', $filename, 'public');
+                // Veritabanı yolunu ayarla
+                $data['gorsel'] = 'uploads/' . $filename;
+            }
 
-            // Veritabanına kaydedilecek yolu ayarla ("uploads/1678944.jpg")
-            $data['gorsel'] = 'uploads/' . $filename;
+            // NOT: Buradaki "if empty departman_id" kontrolünü sildim.
+            // Çünkü yukarıdaki validate() fonksiyonu bunu zaten garanti ediyor.
+
+            // Veritabanına Kayıt
+            Personel::create($data);
+
+            // Başarılı Yönlendirme
+            return redirect()->route('personel.index')
+                ->with('success', 'Personel başarıyla kaydedildi reis!');
+
+        } catch (\Exception $e) {
+            // --- HATA YAKALAMA ---
+
+            // 1. Log dosyasına teknik detayı yaz (Bizim için)
+            Log::error('Personel eklenirken hata oluştu: ' . $e->getMessage());
+
+            // 2. Kullanıcıya genel bir hata mesajı dön
+            return redirect()->back()
+                ->withInput() // Formu silme, yazdıkları kalsın
+                ->with('error', 'Bir hata oluştu reis! Teknik ekip inceliyor. (Hata Kodu: P-500)');
         }
-
-
-        // departman_id'nin boş olmadığından emin ol
-        if (empty($data['departman_id'])) {
-            return back()->withErrors(['departman_id' => 'Departman seçimi zorunludur!'])->withInput();
-        }
-
-        Personel::create($data);
-
-        /* Eğer $fillable kullanmasaydık veya Laravel 6'da eski usül isteselerdi
-           şöyle yazardık (Uzun Yol):
-
-           $personel = new \App\Models\Personel();
-           $personel->ad_soyad = $request->ad_soyad;
-           $personel->email = $request->email;
-           ...
-           $personel->save();
-        */
-
-        // 3. YÖNLENDİRME
-        // İşlem bitince listeye geri dön ve "Başarılı" mesajı taşı.
-        return redirect()->route('personel.index')
-            ->with('success', 'Personel başarıyla kaydedildi reis!');
     }
-
     /**
      * Display the specified resource.
      */
@@ -167,39 +159,51 @@ class PersonelController extends Controller
             'maas',
             'ise_baslama_tarihi'
         ]));
-        if ($request->hasFile('gorsel')) {
 
-            // A) Eski resim varsa ve dosya yerinde duruyorsa SİL (Temizlik)
-            if ($personel->gorsel && \Illuminate\Support\Facades\Storage::exists('public/' . $personel->gorsel)) {
-                \Illuminate\Support\Facades\Storage::delete('public/' . $personel->gorsel);
+        try {
+            if ($request->hasFile('gorsel')) {
+
+                // A) Eski resim varsa ve dosya yerinde duruyorsa SİL (Temizlik)
+                if ($personel->gorsel && \Illuminate\Support\Facades\Storage::exists('public/' . $personel->gorsel)) {
+                    \Illuminate\Support\Facades\Storage::delete('public/' . $personel->gorsel);
+                }
+
+                // B) Yeni resmi yükle
+                $file = $request->file('gorsel');
+                $filename = time() . '.' . $file->getClientOriginalExtension();
+                $file->storeAs('uploads', $filename, 'public');
+
+                // C) Veritabanına yazılacak yeni yolu ayarla
+                $data['gorsel'] = 'uploads/' . $filename;
             }
 
-            // B) Yeni resmi yükle
-            $file = $request->file('gorsel');
-            $filename = time() . '.' . $file->getClientOriginalExtension();
-            $file->storeAs('uploads', $filename, 'public');
+            $personel->update($data);
 
-            // C) Veritabanına yazılacak yeni yolu ayarla
-            $data['gorsel'] = 'uploads/' . $filename;
+
+            // 3. PROJE ATAMA (SYNC - Many to Many)
+            // Burası işin kalbi. Formdaki çoklu seçim kutusundan gelen 'projects' dizisi.
+            if (isset($request->projects)) {
+                // sync(): Listede olanları ekler, olmayanları siler. Tam eşitleme yapar.
+                $personel->projects()->sync($request->projects);
+            } else {
+                // Eğer kutudaki tüm seçimleri kaldırdıysa (hiçbir şey seçmediyse),
+                // o personelin tüm proje bağlantılarını kopar.
+                $personel->projects()->detach();
+            }
+
+            // 4. YÖNLENDİRME
+            return redirect()->route('personel.index')
+                ->with('success', 'Personel ve proje görevleri güncellendi reis!');
+        }
+        catch (\Exception $e) {
+            Log::error('Güncelleme olurken hata oluştu reis: ' . $e->getMessage());
+
+            return redirect()->back()->withInput()->with('error', 'Bir hata oluştu inceleniyor');
+
         }
 
-        $personel->update($data);
 
 
-        // 3. PROJE ATAMA (SYNC - Many to Many)
-        // Burası işin kalbi. Formdaki çoklu seçim kutusundan gelen 'projects' dizisi.
-        if (isset($request->projects)) {
-            // sync(): Listede olanları ekler, olmayanları siler. Tam eşitleme yapar.
-            $personel->projects()->sync($request->projects);
-        } else {
-            // Eğer kutudaki tüm seçimleri kaldırdıysa (hiçbir şey seçmediyse),
-            // o personelin tüm proje bağlantılarını kopar.
-            $personel->projects()->detach();
-        }
-
-        // 4. YÖNLENDİRME
-        return redirect()->route('personel.index')
-            ->with('success', 'Personel ve proje görevleri güncellendi reis!');
     }
 
     /**
