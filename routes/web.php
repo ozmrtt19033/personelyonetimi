@@ -3,8 +3,17 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PersonelController;
 
+//Route::get('/', function () {
+//    return view('welcome');
+//});
+
 Route::get('/', function () {
-    return view('welcome');
+    // Eğer adam zaten giriş yapmışsa personel listesine gitsin
+    if (Auth::check()) {
+        return redirect()->route('personel.index');
+    }
+    // Giriş yapmamışsa Login ekranına gitsin
+    return redirect()->route('login');
 });
 
 // --- TEST GİRİŞ ROTALARI ---
@@ -46,3 +55,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 // 3. DETAY GÖSTERME (SHOW) - EN SONA KOYDUK!
 // Laravel yukarıdakilerden hiçbirini bulamazsa (create, edit değilse) buna bakacak.
 Route::get('/personel/{personel}', [PersonelController::class, 'show'])->name('personel.show');
+
+Auth::routes();
+
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
