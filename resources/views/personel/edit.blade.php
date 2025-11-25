@@ -28,7 +28,7 @@
                 </div>
                 <div class="card-body">
 
-                    <form action="{{ route('personel.update', $personel->id) }}" method="POST">
+                    <form action="{{ route('personel.update', $personel->id) }}" method="POST" enctype="multipart/form-data">
 
                         @csrf
 
@@ -59,12 +59,38 @@
                                 </select>
                             </div>
 
+                            <div class="mb-3">
+                                <label class="form-label">Personel Fotoğrafı</label>
+                                <input type="file" name="gorsel" class="form-control" accept="image/*">
+                            </div>
+
+
+
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Maaş (₺)</label>
                                 <input type="number" step="0.01" class="form-control" name="maas"
                                        value="{{ old('maas', $personel->maas) }}">
                             </div>
                         </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Görevli Olduğu Projeler</label>
+                            <small class="text-muted d-block mb-1">(Birden fazla seçmek için CTRL tuşuna basılı tutun)</small>
+
+                            <select name="projects[]" class="form-select" multiple style="height: 120px;">
+
+                                @foreach($projects as $proje)
+                                    <option value="{{ $proje->id }}"
+                                        {{-- Eğer projenin ID'si, personelin seçili projeleri içindeyse 'selected' yap --}}
+                                        {{ in_array($proje->id, $secili_projeler) ? 'selected' : '' }}>
+
+                                        {{ $proje->ad }}
+                                    </option>
+                                @endforeach
+
+                            </select>
+                        </div>
+
 
                         <div class="mb-3">
                             <label class="form-label">İşe Başlama Tarihi</label>
