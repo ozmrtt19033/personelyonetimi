@@ -24,18 +24,34 @@ class PersonelController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+
+    public function index(Request $request)
     {
-        // 1. Tüm personelleri veritabanından çek
-        // ATC Yazılım notu: Eskiden Personel::all() çok kullanılırdı.
-        // Ama biz modern ve performanslı olsun diye 'latest' (en son eklenen en üstte) kullanalım.
+        // 1. Sorguyu Hazırla (Henüz çekme, bekle)
+        $query = Personel::with(['departman', 'projects'])->latest();
 
-        // Departman ilişkisini de yükle (N+1 query problemini önlemek için)
-        $personeller = Personel::with('departman')->latest()->get();
+        // 2. Arama var mı?
+        if ($request->has('search')) {
+            $search = $request->search;
+            // İsimde VEYA Departman adında ara
+            $query->where(function($q) use ($search) {
+                $q->where('ad_soyad', 'like', "%$search%")
+                    ->orWhereHas('departman', function($d) use ($search) {
+                        $d->where('ad', 'like', "%$search%");
+                    });
+            });
+        }
 
-        // Not: Eğer en başta 'use App\Models\Personel;' eklediysen başına \App\Models\ yazmana gerek yok.
+        // 3. Verileri Çek
+        $personeller = $query->get();
 
-        // 2. Veriyi 'personel.index' view dosyasına paketleyip gönder
+        // 4. AJAX İsteği mi? (JavaScript mi soruyor?)
+        if ($request->ajax()) {
+            // Sadece tablo gövdesini (HTML) render edip gönder
+            return view('personel.tbody', compact('personeller'))->render();
+        }
+
+        // 5. Normal İstek (Sayfayı komple gönder)
         return view('personel.index', compact('personeller'));
     }
 
