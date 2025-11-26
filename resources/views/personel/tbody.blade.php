@@ -18,6 +18,10 @@
         <td>
             <a href="{{ route('personel.show', $personel->id) }}" class="btn btn-sm btn-info text-white">👁️</a>
 
+            <a href="{{ route('personel.pdf', $personel->id) }}" class="btn btn-sm btn-danger" title="PDF İndir">
+                📄
+            </a>
+
             @if(auth()->check() && auth()->user()->role == 'admin')
                 <a href="{{ route('personel.edit', $personel->id) }}" class="btn btn-sm btn-warning">✏️</a>
 

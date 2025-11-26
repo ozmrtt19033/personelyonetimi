@@ -9,6 +9,7 @@ use App\Models\Project;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use App\Exports\PersonelExport;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 //mail işlemleri için;
 use Illuminate\Support\Facades\Mail;
@@ -34,9 +35,9 @@ class PersonelController extends Controller
         if ($request->has('search')) {
             $search = $request->search;
             // İsimde VEYA Departman adında ara
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('ad_soyad', 'like', "%$search%")
-                    ->orWhereHas('departman', function($d) use ($search) {
+                    ->orWhereHas('departman', function ($d) use ($search) {
                         $d->where('ad', 'like', "%$search%");
                     });
             });
@@ -242,10 +243,29 @@ class PersonelController extends Controller
         return redirect()->route('personel.index')->with('success', 'Personel kaydı başarıyla silindi.');
     }
 
+    //excel dökümanı export işlemi
     public function export()
     {
         // 'personeller.xlsx' adıyla indir.
         return Excel::download(new PersonelExport, 'personel_listesi.xlsx');
+    }
+
+    // PDF İNDİRME METODU
+    public function downloadPdf($id)
+    {
+        // 1. Personeli bul (Projeleri ve departmanıyla beraber)
+        $personel = Personel::with(['departman', 'projects'])->findOrFail($id);
+
+        $personel = Personel::with(['departman', 'projects'])->findOrFail($id);
+
+        // 2. PDF Ayarları
+        // 'personel.pdf' adında bir blade dosyası oluşturacağız.
+        // loadView: Hangi tasarımı kullanayım?
+        $pdf = Pdf::loadView('personel.pdf', compact('personel'));
+
+        // 3. İndir (stream: tarayıcıda açar, download: direkt indirir)
+        // Biz 'download' yapalım.
+        return $pdf->download('personel-kimlik-' . $personel->id . '.pdf');
     }
 
 
