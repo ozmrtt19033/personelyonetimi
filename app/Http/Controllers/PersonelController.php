@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-
 use Illuminate\Http\Request;
 use App\Models\Personel;
 use App\Models\Departman;
@@ -11,10 +10,14 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use App\Exports\PersonelExport;
 
-//excel çıktısı için
+//mail işlemleri için;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\WelcomeMail;
+
+//excel çıktısı için;
 use Maatwebsite\Excel\Facades\Excel;
 
-//excel çıktısı için
+//excel çıktısı için;
 
 class PersonelController extends Controller
 {
@@ -94,7 +97,10 @@ class PersonelController extends Controller
             // Çünkü yukarıdaki validate() fonksiyonu bunu zaten garanti ediyor.
 
             // Veritabanına Kayıt
-            Personel::create($data);
+            $personel = Personel::create($data);
+
+            // Kaydettiğimiz personelin email adresine gönderiyoruz
+            Mail::to($personel->email)->send(new WelcomeMail($personel));
 
             // Başarılı Yönlendirme
             return redirect()->route('personel.index')
