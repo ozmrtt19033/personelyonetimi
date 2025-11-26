@@ -50,6 +50,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     // Silme
     Route::delete('/personel/{personel}', [PersonelController::class, 'destroy'])->name('personel.destroy');
+
+    Route::get('/personel/{id}/pdf', [PersonelController::class, 'downloadPdf'])->name('personel.pdf');
 });
 
 // 3. DETAY GÖSTERME (SHOW) - EN SONA KOYDUK!
