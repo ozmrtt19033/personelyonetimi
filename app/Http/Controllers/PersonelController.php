@@ -127,7 +127,7 @@ class PersonelController extends Controller
             // --- HATA YAKALAMA ---
 
             // 1. Log dosyasına teknik detayı yaz (Bizim için)
-            Log::error('Personel eklenirken hata oluştu: ' . $e->getMessage());
+//            Log::error('Personel eklenirken hata oluştu: ' . $e->getMessage()); observer içine yazdık reis:::
 
             // 2. Kullanıcıya genel bir hata mesajı dön
             return redirect()->back()
@@ -224,7 +224,7 @@ class PersonelController extends Controller
             return redirect()->route('personel.index')
                 ->with('success', 'Personel ve proje görevleri güncellendi reis!');
         } catch (\Exception $e) {
-            Log::error('Güncelleme olurken hata oluştu reis: ' . $e->getMessage());
+//            Log::error('Güncelleme olurken hata oluştu reis: ' . $e->getMessage()); observer içine aldık
 
             return redirect()->back()->withInput()->with('error', 'Bir hata oluştu inceleniyor');
 

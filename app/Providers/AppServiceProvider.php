@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Observers\PersonelObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
+use App\Models\Personel;
 
 
 class AppServiceProvider extends ServiceProvider
@@ -22,5 +25,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Schema::defaultStringLength(191);
+        Personel::observe(PersonelObserver::class);
     }
 }
