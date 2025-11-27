@@ -1,18 +1,25 @@
 @extends('layouts.app') @section('content')
     <div class="container">
 
+        <!--components içerisinden verileri dinamik olarak çekiyorum!!!-->
         @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show">
+            @component('components.alert', ['type' => 'success'])
                 {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
+            @endcomponent
+        @endif
+
+        @if(session('error'))
+            @component('components.alert', ['type' => 'danger'])
+                <strong>Hata:</strong> {{ session('error') }}
+            @endcomponent
         @endif
 
         <div class="card shadow">
 
             <div class="card mb-3">
                 <div class="card-body">
-                    <input type="text" id="search" class="form-control" placeholder="🔍 Personel ara (İsim, departman...)...">
+                    <input type="text" id="search" class="form-control"
+                           placeholder="🔍 Personel ara (İsim, departman...)...">
                 </div>
             </div>
 
@@ -50,13 +57,16 @@
         </div>
     </div>
 
+@endsection
+
+@push('scripts')
     <script>
         // Arama kutusunu seç
         const searchInput = document.getElementById('search');
         const tableBody = document.getElementById('personel-table-body');
 
         // Klavye tuşuna basıldığında (keyup)
-        searchInput.addEventListener('keyup', function() {
+        searchInput.addEventListener('keyup', function () {
             let query = this.value;
 
             // AJAX İsteği (Fetch API)
@@ -73,5 +83,4 @@
                 .catch(error => console.error('Hata:', error));
         });
     </script>
-
-@endsection
+@endpush
