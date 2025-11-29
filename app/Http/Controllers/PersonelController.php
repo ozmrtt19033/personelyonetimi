@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use App\Exports\PersonelExport;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Yajra\DataTables\Facades\DataTables;
 
 //mail işlemleri için;
 use Illuminate\Support\Facades\Mail;
@@ -28,33 +29,57 @@ class PersonelController extends Controller
 
     public function index(Request $request)
     {
-        // 1. Sorguyu Hazırla (Henüz çekme, bekle)
-        $query = Personel::with(['departman', 'projects'])->latest();
-
-        // 2. Arama var mı?
-        if ($request->has('search')) {
-            $search = $request->search;
-            // İsimde VEYA Departman adında ara
-            $query->where(function ($q) use ($search) {
-                $q->where('ad_soyad', 'like', "%$search%")
-                    ->orWhereHas('departman', function ($d) use ($search) {
-                        $d->where('ad', 'like', "%$search%");
-                    });
-            });
-        }
-
-        // 3. Verileri Çek
-        $personeller = $query->get();
-
-        // 4. AJAX İsteği mi? (JavaScript mi soruyor?)
         if ($request->ajax()) {
-            // Sadece tablo gövdesini (HTML) render edip gönder
-            return view('personel.tbody', compact('personeller'))->render();
+            $data = Personel::with(['departman', 'projects'])->latest();
+
+            return DataTables::of($data)
+                ->addIndexColumn()
+
+                // --- DÜZELTME BURADA ---
+                // Eskiden: ->editColumn('departman_id', ...) yazıyordu.
+                // Yeni Hali: ->addColumn('departman_ad', ...) yapıyoruz.
+                // Çünkü JS tarafı 'departman_ad' ismini bekliyor.
+                ->addColumn('departman_ad', function($row){
+                    return $row->departman ? $row->departman->ad : 'Atanmamış';
+                })
+                // ------------------------
+
+                ->addColumn('gorsel', function($row){
+                    if($row->gorsel){
+                        $url = asset('storage/' . $row->gorsel);
+                        return '<img src="'.$url.'" width="50" class="rounded-circle" style="object-fit:cover">';
+                    }
+                    return '<span class="badge bg-secondary">Yok</span>';
+                })
+                ->addColumn('ad_soyad_projects', function($row){
+                    $html = '<strong>'.$row->ad_soyad.'</strong><br>';
+                    foreach($row->projects as $proje) {
+                        $html .= '<span class="badge bg-info text-dark me-1" style="font-size: 0.7em">'.$proje->ad.'</span>';
+                    }
+                    return $html;
+                })
+                ->addColumn('action', function($row){
+                    $btn = '<a href="'.route('personel.show', $row->id).'" class="btn btn-sm btn-info text-white me-1">👁️</a>';
+                    $btn .= '<a href="'.route('personel.pdf', $row->id).'" class="btn btn-sm btn-danger me-1" title="PDF İndir">📄</a>';
+
+                    if(auth()->check() && auth()->user()->role == 'admin'){
+                        $btn .= '<a href="'.route('personel.edit', $row->id).'" class="btn btn-sm btn-warning me-1">✏️</a>';
+                        $btn .= '<button onclick="deletePersonel('.$row->id.')" class="btn btn-sm btn-outline-danger">🗑️</button>';
+                    }
+                    return $btn;
+                })
+                ->editColumn('maas', function($row){
+                    return number_format($row->maas, 2) . ' ₺';
+                })
+
+                // 'departman_ad' sütununda HTML yok ama yine de garanti olsun diye ekleyebilirsin
+                ->rawColumns(['gorsel', 'ad_soyad_projects', 'action'])
+                ->make(true);
         }
 
-        // 5. Normal İstek (Sayfayı komple gönder)
-        return view('personel.index', compact('personeller'));
+        return view('personel.index');
     }
+
 
     /**
      * Show the form for creating a new resource.
